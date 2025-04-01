@@ -19,11 +19,22 @@ def process_group(group_name, group_config):
         webhook_url = group_config["webhook"]
         config = group_config["config"]
 
+        logger.info(f"Total de tickers a procesar: {len(tickers)}")
         best_contracts_by_ticker = {}
+        processed_tickers = 0
+        tickers_with_contracts = 0
+
         for ticker in tickers:
+            logger.info(f"Procesando ticker {ticker} ({processed_tickers + 1}/{len(tickers)})...")
             options = analyze_ticker(ticker, config)
             best_contracts_by_ticker[ticker] = options
+            processed_tickers += 1
+            if options:
+                tickers_with_contracts += 1
+                logger.info(f"{ticker}: Encontrados {len(options)} contratos")
 
+        total_contracts = sum(len(contracts) for contracts in best_contracts_by_ticker.values())
+        logger.info(f"Resumen para {group_name}: {tickers_with_contracts}/{processed_tickers} tickers con contratos, {total_contracts} contratos en total")
         send_discord_notification(best_contracts_by_ticker, webhook_url, description)
         logger.info(f"Grupo {group_name} procesado exitosamente")
     except Exception as e:
@@ -31,9 +42,12 @@ def process_group(group_name, group_config):
 
 def main():
     logger.info("Iniciando script para short PUT...")
-    for group_name, group_config in GROUPS_CONFIG.items():
-        process_group(group_name, group_config)
-    logger.info("Script finalizado.")
+    total_groups = len(GROUPS_CONFIG)
+    processed_groups = 0
 
-if __name__ == "__main__":
-    main()
+    for group_name, group_config in GROUPS_CONFIG.items():
+        logger.info(f"Procesando grupo {group_name} ({processed_groups + 1}/{total_groups})...")
+        process_group(group_name, group_config)
+        processed_groups += 1
+
+    logger.info(f"Script finalizado. Procesados {processed_groups}/{total_groups} grupos.")
