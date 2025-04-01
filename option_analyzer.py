@@ -3,6 +3,8 @@ import logging
 import pandas as pd
 from data_fetcher import get_ticker_iv, get_option_data
 
+# Configurar logging para mostrar en consola
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 def analyze_ticker(ticker, config):
@@ -35,7 +37,7 @@ def analyze_ticker(ticker, config):
         if top_options:
             logger.info(f"{ticker}: Se seleccionaron {len(top_options)} contratos:")
             for opt in top_options:
-                logger.info(f"  - Strike: ${opt['strike']:.2f}, Rentabilidad: {opt['rentabilidad_anual']:.2f}%, Distancia: {opt['strike_distance']*100:.2f}%")
+                logger.info(f"  - Strike: ${opt['strike']:.2f}, Rentabilidad: {opt['rentabilidad_anual']:.2f}%, Distancia: {opt['strike_distance']*100:.2f}%, Delta: {opt['delta']:.2f}, IV: {opt['implied_volatility']:.2f}%")
         else:
             logger.info(f"{ticker}: No se seleccionaron contratos después de ordenar")
 
