@@ -2,6 +2,8 @@
 import requests
 import logging
 
+# Configurar logging para mostrar en consola
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 def send_discord_notification(best_contracts_by_ticker, webhook_url, group_description):
@@ -19,6 +21,7 @@ def send_discord_notification(best_contracts_by_ticker, webhook_url, group_descr
         if not best_contracts_by_ticker or total_contracts == 0:
             message = f"No se encontraron contratos para {group_description}."
             payload = {"content": message}
+            logger.debug(f"Enviando mensaje a Discord: {message}")
             requests.post(webhook_url, json=payload)
             logger.info("Notificación enviada a Discord (sin contratos)")
             return
@@ -46,6 +49,7 @@ def send_discord_notification(best_contracts_by_ticker, webhook_url, group_descr
 
         for i, msg in enumerate(messages):
             payload = {"content": msg}
+            logger.debug(f"Enviando mensaje {i+1}/{len(messages)} a Discord: {msg[:100]}...")
             response = requests.post(webhook_url, json=payload)
             response.raise_for_status()
             logger.info(f"Mensaje {i+1}/{len(messages)} enviado a Discord")
