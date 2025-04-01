@@ -13,7 +13,10 @@ def send_discord_notification(best_contracts_by_ticker, webhook_url, group_descr
             logger.error(f"Error: Webhook inválido: {webhook_url}")
             return
 
-        if not best_contracts_by_ticker:
+        total_contracts = sum(len(contracts) for contracts in best_contracts_by_ticker.values())
+        logger.info(f"Enviando notificación a Discord para {group_description}: {total_contracts} contratos encontrados")
+
+        if not best_contracts_by_ticker or total_contracts == 0:
             message = f"No se encontraron contratos para {group_description}."
             payload = {"content": message}
             requests.post(webhook_url, json=payload)
@@ -41,10 +44,11 @@ def send_discord_notification(best_contracts_by_ticker, webhook_url, group_descr
         else:
             messages = [message]
 
-        for msg in messages:
+        for i, msg in enumerate(messages):
             payload = {"content": msg}
             response = requests.post(webhook_url, json=payload)
             response.raise_for_status()
-        logger.info("Notificación enviada a Discord")
+            logger.info(f"Mensaje {i+1}/{len(messages)} enviado a Discord")
+        logger.info("Notificación completada exitosamente")
     except Exception as e:
         logger.error(f"Error enviando notificación a Discord: {e}")
