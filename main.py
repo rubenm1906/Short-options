@@ -4,7 +4,7 @@ from config import GROUPS_CONFIG
 from option_analyzer import analyze_ticker
 from discord_notifier import send_discord_notification
 
-# Configuración de logging
+# Configurar logging para mostrar en consola
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
@@ -32,6 +32,8 @@ def process_group(group_name, group_config):
             if options:
                 tickers_with_contracts += 1
                 logger.info(f"{ticker}: Encontrados {len(options)} contratos")
+            else:
+                logger.info(f"{ticker}: No se encontraron contratos")
 
         total_contracts = sum(len(contracts) for contracts in best_contracts_by_ticker.values())
         logger.info(f"Resumen para {group_name}: {tickers_with_contracts}/{processed_tickers} tickers con contratos, {total_contracts} contratos en total")
