@@ -1,5 +1,7 @@
 # main.py
 import logging
+import sys
+import traceback
 from config import GROUPS_CONFIG
 from option_analyzer import analyze_ticker
 from discord_notifier import send_discord_notification
@@ -41,15 +43,27 @@ def process_group(group_name, group_config):
         logger.info(f"Grupo {group_name} procesado exitosamente")
     except Exception as e:
         logger.error(f"Error procesando grupo {group_name}: {e}")
+        logger.error(traceback.format_exc())
 
 def main():
-    logger.info("Iniciando script para short PUT...")
-    total_groups = len(GROUPS_CONFIG)
-    processed_groups = 0
+    try:
+        # Mensaje inicial para confirmar que el script comienza
+        print("Script iniciado - Configurando logging...")
+        logger.info("Iniciando script para short PUT...")
+        
+        total_groups = len(GROUPS_CONFIG)
+        processed_groups = 0
 
-    for group_name, group_config in GROUPS_CONFIG.items():
-        logger.info(f"Procesando grupo {group_name} ({processed_groups + 1}/{total_groups})...")
-        process_group(group_name, group_config)
-        processed_groups += 1
+        for group_name, group_config in GROUPS_CONFIG.items():
+            logger.info(f"Procesando grupo {group_name} ({processed_groups + 1}/{total_groups})...")
+            process_group(group_name, group_config)
+            processed_groups += 1
 
-    logger.info(f"Script finalizado. Procesados {processed_groups}/{total_groups} grupos.")
+        logger.info(f"Script finalizado. Procesados {processed_groups}/{total_groups} grupos.")
+    except Exception as e:
+        logger.error(f"Error fatal en el script: {e}")
+        logger.error(traceback.format_exc())
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
