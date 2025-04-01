@@ -4,6 +4,8 @@ import logging
 import numpy as np
 from datetime import datetime
 
+# Configurar logging para mostrar en consola
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 def get_ticker_iv(ticker, config):
@@ -13,6 +15,7 @@ def get_ticker_iv(ticker, config):
     try:
         logger.info(f"Obteniendo IV para {ticker}...")
         stock = yf.Ticker(ticker)
+        logger.debug(f"Obteniendo información del ticker {ticker}...")
         current_price = stock.info.get('regularMarketPrice', stock.info.get('previousClose', 0))
         volume = stock.info.get('averageVolume', 0)
 
@@ -35,6 +38,7 @@ def get_ticker_iv(ticker, config):
             return None
 
         iv_values = []
+        logger.debug(f"Procesando {len(expirations)} fechas de vencimiento para {ticker}...")
         for expiration in expirations:
             expiration_date = datetime.strptime(expiration, '%Y-%m-%d')
             days_to_expiration = (expiration_date - datetime.now()).days
@@ -42,6 +46,7 @@ def get_ticker_iv(ticker, config):
                 logger.debug(f"{ticker}: Expiración {expiration} descartada: {days_to_expiration} días (fuera del rango {config['MIN_DIAS_VENCIMIENTO']}-{config['MAX_DIAS_VENCIMIENTO']})")
                 continue
 
+            logger.debug(f"Obteniendo cadena de opciones para {ticker} con vencimiento {expiration}...")
             opt = stock.option_chain(expiration)
             for chain in [opt.puts, opt.calls]:
                 if chain.empty:
@@ -61,7 +66,7 @@ def get_ticker_iv(ticker, config):
             return None
 
         avg_iv = np.mean(iv_values)
-        logger.info(f"{ticker}: Volatilidad implícita promedio: {avg_iv:.2f}%")
+        logger.info(f"{ticker}: Volatilidad implícita promedio calculada: {avg_iv:.2f}%")
         return {
             "ticker": ticker,
             "current_price": current_price,
@@ -79,6 +84,7 @@ def get_option_data(ticker, config):
     try:
         logger.info(f"Obteniendo datos de opciones para {ticker}...")
         stock = yf.Ticker(ticker)
+        logger.debug(f"Obteniendo precio actual de {ticker}...")
         current_price = stock.info.get('regularMarketPrice', stock.info.get('previousClose', 0))
         if current_price <= 0:
             logger.info(f"{ticker}: Descartado - Precio actual no válido: ${current_price}")
@@ -100,6 +106,7 @@ def get_option_data(ticker, config):
             "days_to_expiration": 0
         }
 
+        logger.debug(f"Procesando {len(expirations)} fechas de vencimiento para opciones de {ticker}...")
         for expiration in expirations:
             expiration_date = datetime.strptime(expiration, '%Y-%m-%d')
             days_to_expiration = (expiration_date - datetime.now()).days
@@ -111,6 +118,7 @@ def get_option_data(ticker, config):
             logger.debug(f"Procesando opciones para {ticker} con vencimiento {expiration} ({days_to_expiration} días)")
             opt = stock.option_chain(expiration)
             chain = opt.puts
+            logger.debug(f"Se encontraron {len(chain)} opciones PUT para {expiration}")
             for _, row in chain.iterrows():
                 strike = row['strike']
                 bid = row.get('bid', 0)
@@ -173,7 +181,7 @@ def get_option_data(ticker, config):
                     discarded_reasons["net_risk"] += 1
                     continue
 
-                logger.debug(f"Opción válida encontrada: Strike ${strike:.2f}, Rentabilidad anual {rentabilidad_anual:.2f}%, Delta {delta:.2f}")
+                logger.debug(f"Opción válida encontrada: Strike ${strike:.2f}, Rentabilidad anual {rentabilidad_anual:.2f}%, Delta {delta:.2f}, IV {iv:.2f}%")
                 options_data.append({
                     "ticker": ticker,
                     "strike": strike,
