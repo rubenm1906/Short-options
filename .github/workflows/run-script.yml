@@ -26,4 +26,4 @@ jobs:
         env:
           DISCORD_WEBHOOK_URL_NASDAQ: ${{ secrets.DISCORD_WEBHOOK_URL_NASDAQ }}
         run: |
-          python main.py
+          python main.py || { echo "Script failed with exit code $?"; exit 1; }
