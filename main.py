@@ -5,7 +5,7 @@ from option_analyzer import analyze_ticker
 from discord_notifier import send_discord_notification
 
 # Configuración de logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 def process_group(group_name, group_config):
