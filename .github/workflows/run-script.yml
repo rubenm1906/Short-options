@@ -1,0 +1,28 @@
+name: Run Short PUT Script
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # Ejecuta cada hora
+  workflow_dispatch:  # Permite ejecución manual
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install yfinance pandas numpy requests
+
+      - name: Run script
+        env:
+          DISCORD_WEBHOOK_URL_NASDAQ: ${{ secrets.DISCORD_WEBHOOK_URL_NASDAQ }}
+        run: python main.py
