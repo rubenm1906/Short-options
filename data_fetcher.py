@@ -16,8 +16,12 @@ def get_ticker_iv(ticker, config):
         logger.info(f"Obteniendo IV para {ticker}...")
         stock = yf.Ticker(ticker)
         logger.debug(f"Obteniendo información del ticker {ticker}...")
-        current_price = stock.info.get('regularMarketPrice', stock.info.get('previousClose', 0))
-        volume = stock.info.get('averageVolume', 0)
+        info = stock.info
+        current_price = info.get('regularMarketPrice', info.get('previousClose', 0))
+        volume = info.get('averageVolume', 0)
+
+        # Log detallado de los datos obtenidos
+        logger.debug(f"Datos crudos para {ticker}: Precio actual: ${current_price:.2f}, Volumen promedio: {volume}")
 
         # Verificar precio y volumen del subyacente
         if current_price <= 0:
@@ -46,7 +50,7 @@ def get_ticker_iv(ticker, config):
                 logger.debug(f"{ticker}: Expiración {expiration} descartada: {days_to_expiration} días (excede el máximo de {config['MAX_DIAS_VENCIMIENTO']})")
                 continue
 
-            logger.debug(f"Obteniendo cadena de opciones para {ticker} con vencimiento {expiration}...")
+            logger.debug(f"Obteniendo cadena de opciones para {ticker} con vencimiento {expiration} ({days_to_expiration} días)...")
             opt = stock.option_chain(expiration)
             for chain in [opt.puts, opt.calls]:
                 if chain.empty:
@@ -55,6 +59,8 @@ def get_ticker_iv(ticker, config):
                 chain['strike_diff'] = abs(chain['strike'] - current_price)
                 atm_option = chain.loc[chain['strike_diff'].idxmin()]
                 iv = atm_option.get('impliedVolatility', 0) * 100
+                # Log detallado de la opción ATM
+                logger.debug(f"Opción ATM para {expiration}: Strike ${atm_option['strike']:.2f}, IV {iv:.2f}%")
                 if iv > 0:
                     iv_values.append(iv)
                     logger.debug(f"{ticker}: IV de opción ATM para {expiration}: {iv:.2f}%")
@@ -67,6 +73,10 @@ def get_ticker_iv(ticker, config):
 
         avg_iv = np.mean(iv_values)
         logger.info(f"{ticker}: Volatilidad implícita promedio calculada: {avg_iv:.2f}%")
+        if avg_iv < config["MIN_IV"]:
+            logger.info(f"{ticker}: Descartado - IV baja: {avg_iv:.2f}% < {config['MIN_IV']}%")
+            return None
+
         return {
             "ticker": ticker,
             "current_price": current_price,
@@ -85,8 +95,11 @@ def get_option_data(ticker, config):
         logger.info(f"Obteniendo datos de opciones para {ticker}...")
         stock = yf.Ticker(ticker)
         logger.debug(f"Obteniendo precio actual de {ticker}...")
-        current_price = stock.info.get('regularMarketPrice', stock.info.get('previousClose', 0))
-        previous_close = stock.info.get('previousClose', 0)  # Obtener el precio del último cierre
+        info = stock.info
+        current_price = info.get('regularMarketPrice', info.get('previousClose', 0))
+        previous_close = info.get('previousClose', 0)
+        # Log detallado de los datos del subyacente
+        logger.debug(f"Datos del subyacente para {ticker}: Precio actual: ${current_price:.2f}, Último cierre: ${previous_close:.2f}")
         if current_price <= 0:
             logger.info(f"{ticker}: Descartado - Precio actual no válido: ${current_price}")
             raise ValueError(f"Precio actual de {ticker} no válido: ${current_price}")
@@ -131,8 +144,8 @@ def get_option_data(ticker, config):
                 delta = row.get('delta', 0)
                 iv = row.get('impliedVolatility', 0) * 100
 
-                # Log para verificar el valor crudo de delta
-                logger.debug(f"Opción: Strike ${strike:.2f}, Delta crudo: {row.get('delta', 'No disponible')}")
+                # Log detallado de los datos de la opción
+                logger.debug(f"Evaluando opción: Strike ${strike:.2f}, Bid ${bid:.2f}, Last Price ${last_price:.2f}, Volume {volume}, Open Interest {open_interest}, Delta {delta:.2f}, IV {iv:.2f}%")
 
                 # Filtrar opciones OTM
                 if strike >= current_price:
@@ -214,7 +227,11 @@ def get_option_data(ticker, config):
                 })
 
         logger.info(f"Se encontraron {len(options_data)} opciones válidas para {ticker}")
-        logger.info(f"Motivos de descarte para {ticker}: {discarded_reasons}")
+        # Log detallado de los motivos de descarte
+        logger.debug(f"Resumen de descartes para {ticker}:")
+        for reason, count in discarded_reasons.items():
+            if count > 0:
+                logger.debug(f"  - {reason}: {count} opciones descartadas")
         return options_data
     except Exception as e:
         logger.error(f"Error obteniendo datos para {ticker}: {e}")
