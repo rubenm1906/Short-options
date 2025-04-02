@@ -86,10 +86,11 @@ def get_option_data(ticker, config):
         stock = yf.Ticker(ticker)
         logger.debug(f"Obteniendo precio actual de {ticker}...")
         current_price = stock.info.get('regularMarketPrice', stock.info.get('previousClose', 0))
+        previous_close = stock.info.get('previousClose', 0)  # Obtener el precio del último cierre
         if current_price <= 0:
             logger.info(f"{ticker}: Descartado - Precio actual no válido: ${current_price}")
             raise ValueError(f"Precio actual de {ticker} no válido: ${current_price}")
-        logger.info(f"Precio actual de {ticker}: ${current_price:.2f}")
+        logger.info(f"Precio actual de {ticker}: ${current_price:.2f}, Último cierre: ${previous_close:.2f}")
 
         expirations = stock.options
         options_data = []
@@ -98,9 +99,11 @@ def get_option_data(ticker, config):
             "strike_distance": 0,
             "bid": 0,
             "last_price": 0,
+            "last_price_too_low": 0,  # Nuevo motivo para primas < $1
             "volume": 0,
             "open_interest": 0,
             "delta": 0,
+            "delta_invalid": 0,  # Nuevo motivo para delta no válido
             "rentabilidad_anual": 0,
             "net_risk": 0,
             "days_to_expiration": 0
@@ -128,6 +131,9 @@ def get_option_data(ticker, config):
                 delta = row.get('delta', 0)
                 iv = row.get('impliedVolatility', 0) * 100
 
+                # Log para verificar el valor crudo de delta
+                logger.debug(f"Opción: Strike ${strike:.2f}, Delta crudo: {row.get('delta', 'No disponible')}")
+
                 # Filtrar opciones OTM
                 if strike >= current_price:
                     logger.debug(f"Opción descartada: Strike ${strike:.2f} >= Precio actual ${current_price:.2f} (no es OTM)")
@@ -150,6 +156,11 @@ def get_option_data(ticker, config):
                     logger.debug(f"Opción descartada: Último precio ${last_price:.2f} <= 0")
                     discarded_reasons["last_price"] += 1
                     continue
+                # Nuevo filtro: Prima mayor a $1
+                if last_price < 1.0:
+                    logger.debug(f"Opción descartada: Prima ${last_price:.2f} < $1.00")
+                    discarded_reasons["last_price_too_low"] += 1
+                    continue
                 if volume < config["MIN_VOLUMEN"]:
                     logger.debug(f"Opción descartada: Volumen {volume} < {config['MIN_VOLUMEN']}")
                     discarded_reasons["volume"] += 1
@@ -157,6 +168,11 @@ def get_option_data(ticker, config):
                 if open_interest < config["MIN_OPEN_INTEREST"]:
                     logger.debug(f"Opción descartada: Interés abierto {open_interest} < {config['MIN_OPEN_INTEREST']}")
                     discarded_reasons["open_interest"] += 1
+                    continue
+                # Filtrar opciones con delta no válido
+                if delta == 0 or delta is None:
+                    logger.debug(f"Opción descartada: Delta no válido: {delta}")
+                    discarded_reasons["delta_invalid"] += 1
                     continue
                 if not (config["TARGET_DELTA_MIN"] <= delta <= config["TARGET_DELTA_MAX"]):
                     logger.debug(f"Opción descartada: Delta {delta:.2f} fuera del rango {config['TARGET_DELTA_MIN']} a {config['TARGET_DELTA_MAX']}")
@@ -195,7 +211,8 @@ def get_option_data(ticker, config):
                     "delta": delta,
                     "net_risk": net_risk,
                     "implied_volatility": iv,
-                    "strike_distance": strike_distance
+                    "strike_distance": strike_distance,
+                    "previous_close": previous_close  # Añadir el precio del último cierre
                 })
 
         logger.info(f"Se encontraron {len(options_data)} opciones válidas para {ticker}")
