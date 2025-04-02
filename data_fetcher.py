@@ -181,11 +181,13 @@ def get_option_data(ticker, config):
                     logger.debug(f"Opción descartada: Interés abierto {open_interest} < {config['MIN_OPEN_INTEREST']}")
                     discarded_reasons["open_interest"] += 1
                     continue
-                if delta == 0 or delta is None:
-                    logger.debug(f"Opción descartada: Delta no válido: {delta}")
-                    discarded_reasons["delta_invalid"] += 1
-                    continue
-                if not (config["TARGET_DELTA_MIN"] <= delta <= config["TARGET_DELTA_MAX"]):
+                # Comentamos el filtro de delta no válido
+                # if delta == 0 or delta is None:
+                #     logger.debug(f"Opción descartada: Delta no válido: {delta}")
+                #     discarded_reasons["delta_invalid"] += 1
+                #     continue
+                # Ajustamos el filtro de rango de delta para que no descarte si delta es 0
+                if delta != 0 and not (config["TARGET_DELTA_MIN"] <= delta <= config["TARGET_DELTA_MAX"]):
                     logger.debug(f"Opción descartada: Delta {delta:.2f} fuera del rango {config['TARGET_DELTA_MIN']} a {config['TARGET_DELTA_MAX']}")
                     discarded_reasons["delta"] += 1
                     continue
