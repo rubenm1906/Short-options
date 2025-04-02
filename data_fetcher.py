@@ -42,8 +42,8 @@ def get_ticker_iv(ticker, config):
         for expiration in expirations:
             expiration_date = datetime.strptime(expiration, '%Y-%m-%d')
             days_to_expiration = (expiration_date - datetime.now()).days
-            if days_to_expiration < config["MIN_DIAS_VENCIMIENTO"] or days_to_expiration > config["MAX_DIAS_VENCIMIENTO"]:
-                logger.debug(f"{ticker}: Expiración {expiration} descartada: {days_to_expiration} días (fuera del rango {config['MIN_DIAS_VENCIMIENTO']}-{config['MAX_DIAS_VENCIMIENTO']})")
+            if days_to_expiration > config["MAX_DIAS_VENCIMIENTO"]:
+                logger.debug(f"{ticker}: Expiración {expiration} descartada: {days_to_expiration} días (excede el máximo de {config['MAX_DIAS_VENCIMIENTO']})")
                 continue
 
             logger.debug(f"Obteniendo cadena de opciones para {ticker} con vencimiento {expiration}...")
@@ -99,11 +99,11 @@ def get_option_data(ticker, config):
             "strike_distance": 0,
             "bid": 0,
             "last_price": 0,
-            "last_price_too_low": 0,  # Nuevo motivo para primas < $1
+            "last_price_too_low": 0,
             "volume": 0,
             "open_interest": 0,
             "delta": 0,
-            "delta_invalid": 0,  # Nuevo motivo para delta no válido
+            "delta_invalid": 0,
             "rentabilidad_anual": 0,
             "net_risk": 0,
             "days_to_expiration": 0
@@ -113,8 +113,8 @@ def get_option_data(ticker, config):
         for expiration in expirations:
             expiration_date = datetime.strptime(expiration, '%Y-%m-%d')
             days_to_expiration = (expiration_date - datetime.now()).days
-            if days_to_expiration < config["MIN_DIAS_VENCIMIENTO"] or days_to_expiration > config["MAX_DIAS_VENCIMIENTO"]:
-                logger.debug(f"Expiración {expiration} descartada: {days_to_expiration} días (fuera del rango {config['MIN_DIAS_VENCIMIENTO']}-{config['MAX_DIAS_VENCIMIENTO']})")
+            if days_to_expiration > config["MAX_DIAS_VENCIMIENTO"]:
+                logger.debug(f"Expiración {expiration} descartada: {days_to_expiration} días (excede el máximo de {config['MAX_DIAS_VENCIMIENTO']})")
                 discarded_reasons["days_to_expiration"] += 1
                 continue
 
@@ -156,7 +156,6 @@ def get_option_data(ticker, config):
                     logger.debug(f"Opción descartada: Último precio ${last_price:.2f} <= 0")
                     discarded_reasons["last_price"] += 1
                     continue
-                # Nuevo filtro: Prima mayor a $1
                 if last_price < 1.0:
                     logger.debug(f"Opción descartada: Prima ${last_price:.2f} < $1.00")
                     discarded_reasons["last_price_too_low"] += 1
@@ -169,7 +168,6 @@ def get_option_data(ticker, config):
                     logger.debug(f"Opción descartada: Interés abierto {open_interest} < {config['MIN_OPEN_INTEREST']}")
                     discarded_reasons["open_interest"] += 1
                     continue
-                # Filtrar opciones con delta no válido
                 if delta == 0 or delta is None:
                     logger.debug(f"Opción descartada: Delta no válido: {delta}")
                     discarded_reasons["delta_invalid"] += 1
@@ -212,7 +210,7 @@ def get_option_data(ticker, config):
                     "net_risk": net_risk,
                     "implied_volatility": iv,
                     "strike_distance": strike_distance,
-                    "previous_close": previous_close  # Añadir el precio del último cierre
+                    "previous_close": previous_close
                 })
 
         logger.info(f"Se encontraron {len(options_data)} opciones válidas para {ticker}")
