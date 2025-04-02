@@ -1,6 +1,5 @@
 # option_analyzer.py
 import logging
-import pandas as pd
 from data_fetcher import get_ticker_iv, get_option_data
 
 # Configurar logging para mostrar en consola
@@ -9,39 +8,39 @@ logger = logging.getLogger(__name__)
 
 def analyze_ticker(ticker, config):
     """
-    Analiza un ticker: verifica IV y obtiene las mejores opciones PUT.
+    Analiza un ticker y devuelve las mejores opciones PUT.
     """
     try:
-        logger.info(f"Analizando {ticker}...")
-        # Verificar IV del ticker
+        # Obtener IV del ticker
         ticker_data = get_ticker_iv(ticker, config)
-        if ticker_data is None:
-            logger.info(f"{ticker}: No se procesará - Falló la obtención de datos o no cumple con los filtros iniciales")
+        if not ticker_data:
+            logger.info(f"No se analizarán opciones para {ticker} debido a filtros de IV o datos inválidos")
             return []
-        if ticker_data["implied_volatility"] < config["MIN_IV"]:
-            logger.info(f"{ticker}: Descartado - IV baja: {ticker_data['implied_volatility']:.2f}% < {config['MIN_IV']}%")
-            return []
+
+        # Log detallado de los datos del ticker
+        logger.debug(f"Datos del ticker {ticker}: {ticker_data}")
 
         # Obtener datos de opciones
         options = get_option_data(ticker, config)
         if not options:
-            logger.info(f"{ticker}: No se encontraron opciones que cumplan los criterios")
+            logger.info(f"No se encontraron opciones válidas para {ticker}")
             return []
 
-        # Ordenar por rentabilidad y distancia del strike
-        logger.debug(f"Ordenando {len(options)} opciones para {ticker}...")
-        df = pd.DataFrame(options)
-        df = df.sort_values(by=["rentabilidad_anual", "strike_distance"], ascending=[False, False])
-        top_options = df.head(config["TOP_CONTRATOS_PER_TICKER"]).to_dict('records')
+        # Ordenar opciones por rentabilidad anual descendente
+        options.sort(key=lambda x: x["rentabilidad_anual"], reverse=True)
 
+        # Seleccionar las mejores opciones según el límite
+        top_options = options[:config["TOP_CONTRATOS_PER_TICKER"]]
+        logger.info(f"Se seleccionaron {len(top_options)} de {len(options)} opciones para {ticker}")
+        # Log detallado de las opciones seleccionadas
         if top_options:
-            logger.info(f"{ticker}: Se seleccionaron {len(top_options)} contratos:")
+            logger.debug(f"Opciones seleccionadas para {ticker}:")
             for opt in top_options:
-                logger.info(f"  - Strike: ${opt['strike']:.2f}, Rentabilidad: {opt['rentabilidad_anual']:.2f}%, Distancia: {opt['strike_distance']*100:.2f}%, Delta: {opt['delta']:.2f}, IV: {opt['implied_volatility']:.2f}%")
+                logger.debug(f"  - Strike ${opt['strike']:.2f}, Vencimiento {opt['expiration']}, Rentabilidad {opt['rentabilidad_anual']:.2f}%, Delta {opt['delta']:.2f}")
         else:
-            logger.info(f"{ticker}: No se seleccionaron contratos después de ordenar")
+            logger.debug(f"No se seleccionaron opciones para {ticker} después de ordenar")
 
         return top_options
     except Exception as e:
-        logger.error(f"Error analizando {ticker}: {e}")
+        logger.error(f"Error analizando ticker {ticker}: {e}")
         return []
