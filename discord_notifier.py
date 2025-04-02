@@ -30,11 +30,13 @@ def send_discord_notification(best_contracts_by_ticker, webhook_url, group_descr
         for ticker, contracts in best_contracts_by_ticker.items():
             if not contracts:
                 continue
-            message += f"\n**{ticker}**:\n"
+            # Obtener el precio del último cierre del primer contrato (todos los contratos del ticker tienen el mismo previous_close)
+            previous_close = contracts[0]["previous_close"] if contracts else 0
+            message += f"\n**{ticker}** (Último Cierre: ${previous_close:.2f}):\n"
             for contract in contracts:
                 message += (f"- Strike: ${contract['strike']:.2f} | "
                            f"Vencimiento: {contract['expiration']} ({contract['days_to_expiration']} días) | "
-                           f"Prima: ${contract['last_price']:.2f} | "
+                           f"Prima: ${contract['last_price']:.2f} (Bid: ${contract['bid']:.2f}) | "
                            f"Rent. Anual: {contract['rentabilidad_anual']:.2f}% | "
                            f"Delta: {contract['delta']:.2f} | "
                            f"IV: {contract['implied_volatility']:.2f}% | "
