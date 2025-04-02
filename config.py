@@ -20,7 +20,7 @@ GROUPS_CONFIG = {
         "description": "NASDAQ-100 Short PUT",
         "webhook": os.getenv("DISCORD_WEBHOOK_URL_NASDAQ", "URL_POR_DEFECTO"),
         "config": {
-            "MIN_DIAS_VENCIMIENTO": 20,
+            "MIN_DIAS_VENCIMIENTO": 01,
             "MAX_DIAS_VENCIMIENTO": 45,
             "MIN_RENTABILIDAD_ANUAL": 35.0,
             "TARGET_DELTA_MIN": -0.20,
