@@ -2,7 +2,9 @@ name: Run Short PUT Script
 
 on:
   schedule:
-    - cron: '0 * * * *'  # Ejecuta cada hora
+    - cron: '30 1 * * *'  # 03:30 CEST (01:30 UTC)
+    - cron: '0 15 * * *'  # 17:00 CEST (15:00 UTC)
+    - cron: '0 19 * * *'  # 21:00 CEST (19:00 UTC)
   workflow_dispatch:  # Permite ejecución manual
 
 jobs:
@@ -10,12 +12,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4  # Updated to latest version
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v5  # Updated to latest version
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'  # Upgraded to Python 3.11
+          python-version: '3.11'
 
       - name: Install dependencies
         run: |
